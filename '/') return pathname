@@ -1,0 +1,264 @@
+'/';
+    return pathname.startsWith(path);
+  };
+
+  return (
+    <nav className="navbar">
+      <div className="container">
+        <div className="navbar-inner">
+          <Link href="/" className="navbar-brand">
+            📝 jjsad
+          </Link>
+          <ul className="navbar-links">
+            <li>
+              <Link href="/" className={isActive('/') && pathname === '/' ? 'active' : ''}>
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link href="/notes" className={isActive('/notes') ? 'active' : ''}>
+                My Notes
+              </Link>
+            </li>
+            <li>
+              <Link href="/feed" className={isActive('/feed') ? 'active' : ''}>
+                Feed
+              </Link>
+            </li>
+            <li>
+              <Link href="/notes/create" className="nav-cta">
+                + New Note
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  );
+}
+</file>
+
+<file path="src/components/Footer.tsx">
+export default function Footer() {
+  return (
+    <footer className="footer">
+      <div className="container">
+        <div className="footer-inner">
+          <span>
+            Built with ❤️ by <span className="footer-brand">jjsad</span>
+          </span>
+          <span>© {new Date().getFullYear()} All rights reserved.</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+</file>
+
+<file path="src/components/NoteCard.tsx">
+'use client';
+
+import Link from 'next/link';
+import type { NoteData } from '@/types';
+
+interface NoteCardProps {
+  note: NoteData;
+  onDelete?: (id: string) => void;
+}
+
+export default function NoteCard({ note, onDelete }: NoteCardProps) {
+  const tags = note.tags ? note.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  return (
+    <div className="note-card">
+      <div className="note-card-header">
+        <Link href={`/notes/${note.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+          <h3 className="note-card-title" style={{ cursor: 'pointer' }}>
+            {note.title}
+          </h3>
+        </Link>
+        <span className={`badge ${note.isPublic ? 'badge-public' : 'badge-private'}`}>
+          {note.isPublic ? '🌐 Public' : '🔒 Private'}
+        </span>
+      </div>
+
+      <p className="note-card-content">{note.content}</p>
+
+      {tags.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          {tags.map(tag => (
+            <span key={tag} className="tag">#{tag}</span>
+          ))}
+        </div>
+      )}
+
+      <div className="note-card-meta">
+        <span>✍️ {note.authorName}</span>
+        <span>•</span>
+        <span>{formatDate(note.createdAt)}</span>
+      </div>
+
+      <div className="note-card-actions">
+        <Link href={`/notes/${note.id}`} className="btn btn-secondary btn-sm">
+          View
+        </Link>
+        <Link href={`/notes/${note.id}/edit`} className="btn btn-secondary btn-sm">
+          ✏️ Edit
+        </Link>
+        {onDelete && (
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={() => onDelete(note.id)}
+          >
+            🗑️
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/NoteForm.tsx">
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import type { NoteFormData } from '@/types';
+
+interface NoteFormProps {
+  onSubmit: (data: NoteFormData) => Promise<void>;
+  submitLabel: string;
+  initialValues?: Partial<NoteFormData>;
+}
+
+export default function NoteForm({ onSubmit, submitLabel, initialValues }: NoteFormProps) {
+  const [title, setTitle] = useState(initialValues?.title || '');
+  const [content, setContent] = useState(initialValues?.content || '');
+  const [tags, setTags] = useState(initialValues?.tags || '');
+  const [isPublic, setIsPublic] = useState(initialValues?.isPublic || false);
+  const [authorName, setAuthorName] = useState(initialValues?.authorName || '');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!title.trim()) {
+      setError('Title is required.');
+      return;
+    }
+    if (!content.trim()) {
+      setError('Content is required.');
+      return;
+    }
+    if (title.trim().length > 200) {
+      setError('Title must be 200 characters or less.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        title: title.trim(),
+        content: content.trim(),
+        tags: tags.trim(),
+        isPublic,
+        authorName: authorName.trim() || 'Anonymous',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="form-card">
+      {error && <div className="alert alert-error">{error}</div>}
+
+      <div className="form-group">
+        <label htmlFor="authorName" className="form-label">
+          Author Name <span>(optional)</span>
+        </label>
+        <input
+          id="authorName"
+          type="text"
+          className="form-input"
+          placeholder="Your name (default: Anonymous)"
+          value={authorName}
+          onChange={e => setAuthorName(e.target.value)}
+          maxLength={100}
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="title" className="form-label">
+          Title <span>*</span>
+        </label>
+        <input
+          id="title"
+          type="text"
+          className="form-input"
+          placeholder="Give your note a title..."
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          maxLength={200}
+          required
+        />
+        <span className="form-hint">{title.length}/200 characters</span>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="content" className="form-label">
+          Content <span>*</span>
+        </label>
+        <textarea
+          id="content"
+          className="form-textarea"
+          placeholder="Write your note content here..."
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="tags" className="form-label">
+          Tags <span>(comma separated)</span>
+        </label>
+        <input
+          id="tags"
+          type="text"
+          className="form-input"
+          placeholder="e.g. javascript, react, tutorial"
+          value={tags}
+          onChange={e => setTags(e.target.value)}
+          maxLength={500}
+        />
+        <span className="form-hint">Separate tags with commas</span>
+      </div>
+
+      <div className="form-group">
+        <label
+          className="form-toggle"
+          onClick={() => setIsPublic(!isPublic)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => { if (e.key
