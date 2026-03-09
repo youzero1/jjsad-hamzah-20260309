@@ -1,152 +1,159 @@
 'use client';
 
 import { useState } from 'react';
-import { CreateNoteDto, NoteType, UpdateNoteDto } from '@/types';
 
-interface NoteFormProps {
-  initialData?: NoteType;
-  onSubmit: (data: CreateNoteDto | UpdateNoteDto) => Promise<void>;
-  submitLabel?: string;
+interface NoteFormValues {
+  title: string;
+  content: string;
+  tags: string;
+  isPublic: boolean;
+  authorName: string;
 }
 
-export default function NoteForm({
-  initialData,
-  onSubmit,
-  submitLabel = 'Save',
-}: NoteFormProps) {
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [content, setContent] = useState(initialData?.content || '');
-  const [tags, setTags] = useState(initialData?.tags || '');
-  const [authorName, setAuthorName] = useState(initialData?.authorName || '');
-  const [isPublic, setIsPublic] = useState(initialData?.isPublic || false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+interface NoteFormProps {
+  onSubmit: (values: NoteFormValues) => Promise<void>;
+  submitLabel?: string;
+  initialValues?: NoteFormValues;
+}
+
+const defaultValues: NoteFormValues = {
+  title: '',
+  content: '',
+  tags: '',
+  isPublic: false,
+  authorName: 'Anonymous',
+};
+
+export default function NoteForm({ onSubmit, submitLabel = 'Save', initialValues }: NoteFormProps) {
+  const [values, setValues] = useState<NoteFormValues>(initialValues || defaultValues);
+  const [errors, setErrors] = useState<Partial<NoteFormValues>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const validate = (): boolean => {
+    const newErrors: Partial<NoteFormValues> = {};
+    if (!values.title.trim()) newErrors.title = 'Title is required';
+    else if (values.title.trim().length > 200) newErrors.title = 'Title must be 200 characters or less';
+    if (!values.content.trim()) newErrors.content = 'Content is required';
+    if (!values.authorName.trim()) newErrors.authorName = 'Author name is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      setError('Title and content are required.');
-      return;
-    }
-    setError('');
-    setLoading(true);
+    if (!validate()) return;
+    setSubmitting(true);
+    setSubmitError('');
     try {
-      await onSubmit({
-        title: title.trim(),
-        content: content.trim(),
-        tags: tags.trim() || undefined,
-        authorName: authorName.trim() || 'Anonymous',
-        isPublic,
-      });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      await onSubmit(values);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
+  const handleChange = (field: keyof NoteFormValues, value: string | boolean) => {
+    setValues(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="card space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
-        </div>
+    <form onSubmit={handleSubmit} className="form-card" noValidate>
+      {submitError && (
+        <div className="alert alert-error">{submitError}</div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Title <span className="text-red-500">*</span>
-        </label>
+      <div className="form-group">
+        <label className="form-label" htmlFor="title">Title <span>*</span></label>
         <input
+          id="title"
           type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="input-field"
-          placeholder="Enter note title..."
-          required
+          className={`form-input${errors.title ? ' form-input-error' : ''}`}
+          placeholder="Give your note a title..."
+          value={values.title}
+          onChange={e => handleChange('title', e.target.value)}
+          maxLength={200}
+          disabled={submitting}
         />
+        {errors.title && <span className="form-error">{errors.title}</span>}
+        <span className="form-hint">{values.title.length}/200 characters</span>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Content <span className="text-red-500">*</span>
-        </label>
+      <div className="form-group">
+        <label className="form-label" htmlFor="content">Content <span>*</span></label>
         <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="input-field min-h-[200px] resize-y"
-          placeholder="Write your note content here..."
+          id="content"
+          className={`form-textarea${errors.content ? ' form-input-error' : ''}`}
+          placeholder="Write your note here... (supports multi-line)"
+          value={values.content}
+          onChange={e => handleChange('content', e.target.value)}
+          disabled={submitting}
           rows={8}
-          required
         />
+        {errors.content && <span className="form-error">{errors.content}</span>}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Tags
-          <span className="text-gray-400 font-normal ml-1">(comma-separated)</span>
-        </label>
+      <div className="form-group">
+        <label className="form-label" htmlFor="authorName">Author Name</label>
         <input
+          id="authorName"
           type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="input-field"
-          placeholder="e.g. technology, productivity, ideas"
+          className="form-input"
+          placeholder="Your name"
+          value={values.authorName}
+          onChange={e => handleChange('authorName', e.target.value)}
+          disabled={submitting}
         />
+        {errors.authorName && <span className="form-error">{errors.authorName}</span>}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Author Name
-        </label>
+      <div className="form-group">
+        <label className="form-label" htmlFor="tags">Tags <span>(optional)</span></label>
         <input
+          id="tags"
           type="text"
-          value={authorName}
-          onChange={(e) => setAuthorName(e.target.value)}
-          className="input-field"
-          placeholder="Anonymous"
+          className="form-input"
+          placeholder="e.g. tech, personal, ideas (comma-separated)"
+          value={values.tags}
+          onChange={e => handleChange('tags', e.target.value)}
+          disabled={submitting}
         />
+        <span className="form-hint">Separate tags with commas</span>
       </div>
 
-      <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-        <label className="relative inline-flex items-center cursor-pointer">
+      <div className="form-group">
+        <label className="form-label">Visibility</label>
+        <label className="form-toggle" htmlFor="isPublic" style={{ cursor: submitting ? 'not-allowed' : 'pointer' }}>
           <input
+            id="isPublic"
             type="checkbox"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="sr-only peer"
+            style={{ display: 'none' }}
+            checked={values.isPublic}
+            onChange={e => handleChange('isPublic', e.target.checked)}
+            disabled={submitting}
           />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          <div className={`toggle-switch ${values.isPublic ? 'on' : ''}`} />
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+              {values.isPublic ? '🌐 Public' : '🔒 Private'}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {values.isPublic
+                ? 'Visible to everyone in the public feed'
+                : 'Only visible to you'}
+            </div>
+          </div>
         </label>
-        <div>
-          <p className="text-sm font-medium text-gray-700">
-            {isPublic ? '🌍 Public' : '🔒 Private'}
-          </p>
-          <p className="text-xs text-gray-500">
-            {isPublic
-              ? 'This note will be visible in the public feed'
-              : 'Only you can see this note'}
-          </p>
-        </div>
       </div>
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-primary flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Saving...
-            </>
-          ) : (
-            submitLabel
-          )}
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+        <button type="button" className="btn btn-secondary" onClick={() => window.history.back()} disabled={submitting}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? 'Saving...' : submitLabel}
         </button>
       </div>
     </form>

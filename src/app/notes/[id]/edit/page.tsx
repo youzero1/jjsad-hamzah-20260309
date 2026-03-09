@@ -4,12 +4,22 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import NoteForm from '@/components/NoteForm';
-import { NoteType, UpdateNoteDto } from '@/types';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  tags: string;
+  isPublic: boolean;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function EditNotePage() {
   const params = useParams();
   const router = useRouter();
-  const [note, setNote] = useState<NoteType | null>(null);
+  const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -17,21 +27,31 @@ export default function EditNotePage() {
     const fetchNote = async () => {
       try {
         const res = await fetch(`/api/notes/${params.id}`);
-        if (!res.ok) throw new Error('Note not found');
+        if (!res.ok) {
+          setError('Note not found.');
+          return;
+        }
         const data = await res.json();
-        setNote(data.data);
-      } catch {
+        setNote(data);
+      } catch (err) {
+        console.error(err);
         setError('Failed to load note.');
       } finally {
         setLoading(false);
       }
     };
-    if (params.id) fetchNote();
+    fetchNote();
   }, [params.id]);
 
-  const handleSubmit = async (data: UpdateNoteDto) => {
+  const handleSubmit = async (data: {
+    title: string;
+    content: string;
+    tags: string;
+    isPublic: boolean;
+    authorName: string;
+  }) => {
     const res = await fetch(`/api/notes/${params.id}`, {
-      method: 'PATCH',
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
@@ -44,33 +64,46 @@ export default function EditNotePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-16">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+      <div className="container">
+        <div className="loading-state">
+          <div className="spinner" />
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !note) {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">{error || 'Note not found'}</h3>
-        <Link href="/notes" className="btn-primary">Back to Notes</Link>
+      <div className="container">
+        <div className="empty-state">
+          <div className="empty-state-icon">❌</div>
+          <h3>{error || 'Note not found'}</h3>
+          <Link href="/notes" className="btn btn-primary">← Back to Notes</Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <Link href={`/notes/${note.id}`} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-          ← Back to Note
-        </Link>
+    <div className="container" style={{ maxWidth: '720px' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <Link href={`/notes/${note.id}`} className="btn btn-secondary btn-sm">← Back to Note</Link>
       </div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Edit Note</h1>
+      <div className="page-header">
+        <h1 className="page-title">✏️ Edit Note</h1>
+        <p className="page-subtitle">Update your note</p>
+      </div>
       <NoteForm
-        initialData={note}
         onSubmit={handleSubmit}
         submitLabel="Save Changes"
+        initialValues={{
+          title: note.title,
+          content: note.content,
+          tags: note.tags || '',
+          isPublic: note.isPublic,
+          authorName: note.authorName,
+        }}
       />
     </div>
   );

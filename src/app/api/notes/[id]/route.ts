@@ -1,44 +1,85 @@
-import 'reflect-metadata';
 import { NextRequest, NextResponse } from 'next/server';
-import { getNoteRepository } from '@/lib/database';
+import { getDataSource } from '@/lib/database';
+import { Note } from '@/entities/Note';
 
 export async function GET(
-  req: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const repo = await getNoteRepository();
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Note);
     const note = await repo.findOne({ where: { id: params.id } });
     if (!note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
-    return NextResponse.json({ data: note });
+    return NextResponse.json(note);
   } catch (error) {
     console.error('GET /api/notes/[id] error:', error);
     return NextResponse.json({ error: 'Failed to fetch note' }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
+export async function PUT(
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const repo = await getNoteRepository();
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Note);
     const note = await repo.findOne({ where: { id: params.id } });
     if (!note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
 
-    const body = await req.json();
-    if (body.title !== undefined) note.title = body.title.trim();
-    if (body.content !== undefined) note.content = body.content.trim();
-    if (body.tags !== undefined) note.tags = body.tags?.trim() || null;
-    if (body.isPublic !== undefined) note.isPublic = body.isPublic;
-    if (body.authorName !== undefined) note.authorName = body.authorName.trim();
+    const body = await request.json();
+    const { title, content, tags, isPublic, authorName } = body;
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+    if (title.trim().length > 200) {
+      return NextResponse.json({ error: 'Title must be 200 characters or less' }, { status: 400 });
+    }
+
+    note.title = title.trim();
+    note.content = content.trim();
+    note.tags = typeof tags === 'string' ? tags.trim() : '';
+    if (typeof isPublic === 'boolean') note.isPublic = isPublic;
+    if (typeof authorName === 'string' && authorName.trim()) note.authorName = authorName.trim();
 
     const updated = await repo.save(note);
-    return NextResponse.json({ data: updated });
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('PUT /api/notes/[id] error:', error);
+    return NextResponse.json({ error: 'Failed to update note' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Note);
+    const note = await repo.findOne({ where: { id: params.id } });
+    if (!note) {
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 });
+    }
+
+    const body = await request.json();
+    if (typeof body.isPublic === 'boolean') note.isPublic = body.isPublic;
+    if (typeof body.title === 'string' && body.title.trim()) note.title = body.title.trim();
+    if (typeof body.content === 'string' && body.content.trim()) note.content = body.content.trim();
+    if (typeof body.tags === 'string') note.tags = body.tags.trim();
+    if (typeof body.authorName === 'string' && body.authorName.trim()) note.authorName = body.authorName.trim();
+
+    const updated = await repo.save(note);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error('PATCH /api/notes/[id] error:', error);
     return NextResponse.json({ error: 'Failed to update note' }, { status: 500 });
@@ -46,11 +87,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const repo = await getNoteRepository();
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Note);
     const note = await repo.findOne({ where: { id: params.id } });
     if (!note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });

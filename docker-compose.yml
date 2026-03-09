@@ -5,16 +5,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: jjsad-app
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_PATH=/app/data/database.sqlite
-      - NEXT_PUBLIC_APP_NAME=jjsad
-      - NEXT_PUBLIC_BASE_URL=http://localhost:3000
     volumes:
       - jjsad_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=./data/jjsad.sqlite
+      - NEXT_PUBLIC_APP_NAME=jjsad
+      - NEXT_PUBLIC_BASE_URL=http://localhost:3000
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/notes"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   jjsad_data:
+    driver: local

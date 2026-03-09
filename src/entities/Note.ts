@@ -1,7 +1,6 @@
-import 'reflect-metadata';
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
@@ -9,25 +8,22 @@ import {
 
 @Entity('notes')
 export class Note {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('text')
   id!: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column('text')
   title!: string;
 
-  @Column({ type: 'text' })
+  @Column('text')
   content!: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  tags!: string | null;
+  @Column('text', { nullable: true, default: '' })
+  tags!: string;
 
-  @Column({ type: 'boolean', default: false })
+  @Column('boolean', { default: false })
   isPublic!: boolean;
 
-  @Column({ type: 'integer', default: 0 })
-  likes!: number;
-
-  @Column({ type: 'varchar', length: 100, default: 'Anonymous' })
+  @Column('text', { default: 'Anonymous' })
   authorName!: string;
 
   @CreateDateColumn()

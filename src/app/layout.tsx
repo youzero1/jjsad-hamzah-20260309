@@ -4,8 +4,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'jjsad - Social Note Taking',
-  description: 'A social note-taking platform where you can create, share, and discover notes.',
+  title: 'jjsad – Social Note Taking',
+  description: 'Create, share, and discover notes with the community.',
 };
 
 export default function RootLayout({
@@ -15,9 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-slate-50">
+      <body>
         <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
+        <main className="page-wrapper">
           {children}
         </main>
         <Footer />

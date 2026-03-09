@@ -2,52 +2,74 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-5xl font-bold text-gray-900 mb-4">
-          Welcome to{' '}
-          <span className="text-blue-600">{process.env.NEXT_PUBLIC_APP_NAME || 'jjsad'}</span>
-        </h1>
-        <p className="text-xl text-gray-600 mb-8">
-          Your social note-taking platform. Create, organize, and share your thoughts with the world.
+    <div className="container">
+      <section className="hero">
+        <h1 className="hero-title">Think. Write. Share.</h1>
+        <p className="hero-subtitle">
+          jjsad is your personal note-taking space with a social twist.
+          Capture your thoughts privately or share them with the world.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/notes/create"
-            className="btn-primary text-lg py-3 px-8 inline-block"
-          >
-            ✏️ Create a Note
+        <div className="hero-actions">
+          <Link href="/notes/create" className="btn btn-primary btn-lg">
+            ✏️ Start Writing
           </Link>
-          <Link
-            href="/feed"
-            className="btn-secondary text-lg py-3 px-8 inline-block"
-          >
-            🌍 Browse Public Feed
+          <Link href="/feed" className="btn btn-secondary btn-lg">
+            🌐 Explore Feed
           </Link>
         </div>
-        <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="card text-left">
-            <div className="text-3xl mb-3">📝</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Create Notes</h3>
-            <p className="text-gray-600 text-sm">
-              Write and organize your thoughts with titles, content, and tags.
-            </p>
-          </div>
-          <div className="card text-left">
-            <div className="text-3xl mb-3">🔒</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Private & Public</h3>
-            <p className="text-gray-600 text-sm">
-              Keep notes private or share them publicly for others to discover.
-            </p>
-          </div>
-          <div className="card text-left">
-            <div className="text-3xl mb-3">❤️</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Like & Engage</h3>
-            <p className="text-gray-600 text-sm">
-              React to public notes and see what the community is sharing.
-            </p>
-          </div>
+      </section>
+
+      <hr className="section-divider" />
+
+      <div className="features-grid">
+        <div className="feature-card">
+          <div className="feature-icon">📝</div>
+          <div className="feature-title">Rich Notes</div>
+          <p className="feature-desc">
+            Write multi-line notes with titles, body content, and custom tags to stay organized.
+          </p>
         </div>
+        <div className="feature-card">
+          <div className="feature-icon">🔒</div>
+          <div className="feature-title">Privacy Control</div>
+          <p className="feature-desc">
+            Keep notes private by default. Publish them publicly when you&apos;re ready to share.
+          </p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">🌐</div>
+          <div className="feature-title">Public Feed</div>
+          <p className="feature-desc">
+            Discover and read notes shared by others in a real-time chronological feed.
+          </p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">🔍</div>
+          <div className="feature-title">Search & Filter</div>
+          <p className="feature-desc">
+            Quickly find your notes by searching titles or filtering by tags.
+          </p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">⚡</div>
+          <div className="feature-title">Instant Updates</div>
+          <p className="feature-desc">
+            Edit and update your notes in real time with a fast, smooth interface.
+          </p>
+        </div>
+        <div className="feature-card">
+          <div className="feature-icon">📱</div>
+          <div className="feature-title">Responsive Design</div>
+          <p className="feature-desc">
+            Access your notes seamlessly from desktop, tablet, or mobile device.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: '4rem', paddingBottom: '2rem' }}>
+        <Link href="/notes" className="btn btn-secondary btn-lg">
+          📋 My Notes
+        </Link>
       </div>
     </div>
   );

@@ -1,64 +1,63 @@
-import 'reflect-metadata';
 import { NextRequest, NextResponse } from 'next/server';
-import { getNoteRepository } from '@/lib/database';
-import { Like } from 'typeorm';
+import { getDataSource } from '@/lib/database';
+import { Note } from '@/entities/Note';
+import { v4 as uuidv4 } from 'uuid';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const repo = await getNoteRepository();
-    const { searchParams } = new URL(req.url);
-    const search = searchParams.get('search') || '';
-    const tag = searchParams.get('tag') || '';
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Note);
+    const { searchParams } = new URL(request.url);
+    const publicOnly = searchParams.get('public') === 'true';
 
-    let notes = await repo.find({
-      order: { createdAt: 'DESC' },
-    });
-
-    if (search) {
-      const lower = search.toLowerCase();
-      notes = notes.filter(
-        (n) =>
-          n.title.toLowerCase().includes(lower) ||
-          n.content.toLowerCase().includes(lower)
-      );
+    let notes: Note[];
+    if (publicOnly) {
+      notes = await repo.find({
+        where: { isPublic: true },
+        order: { createdAt: 'DESC' },
+      });
+    } else {
+      notes = await repo.find({
+        order: { createdAt: 'DESC' },
+      });
     }
 
-    if (tag) {
-      notes = notes.filter(
-        (n) => n.tags && n.tags.split(',').map((t) => t.trim()).includes(tag)
-      );
-    }
-
-    return NextResponse.json({ data: notes });
+    return NextResponse.json(notes);
   } catch (error) {
     console.error('GET /api/notes error:', error);
     return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const repo = await getNoteRepository();
-    const body = await req.json();
+    const body = await request.json();
+    const { title, content, tags, isPublic, authorName } = body;
 
-    if (!body.title || !body.content) {
-      return NextResponse.json(
-        { error: 'Title and content are required' },
-        { status: 400 }
-      );
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+    if (title.trim().length > 200) {
+      return NextResponse.json({ error: 'Title must be 200 characters or less' }, { status: 400 });
     }
 
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Note);
+
     const note = repo.create({
-      title: body.title.trim(),
-      content: body.content.trim(),
-      tags: body.tags?.trim() || null,
-      isPublic: body.isPublic ?? false,
-      authorName: body.authorName?.trim() || 'Anonymous',
-      likes: 0,
+      id: uuidv4(),
+      title: title.trim(),
+      content: content.trim(),
+      tags: typeof tags === 'string' ? tags.trim() : '',
+      isPublic: typeof isPublic === 'boolean' ? isPublic : false,
+      authorName: typeof authorName === 'string' && authorName.trim() ? authorName.trim() : 'Anonymous',
     });
 
     const saved = await repo.save(note);
-    return NextResponse.json({ data: saved }, { status: 201 });
+    return NextResponse.json(saved, { status: 201 });
   } catch (error) {
     console.error('POST /api/notes error:', error);
     return NextResponse.json({ error: 'Failed to create note' }, { status: 500 });

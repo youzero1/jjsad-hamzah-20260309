@@ -1,103 +1,105 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { NoteType } from '@/types';
+import ShareButton from './ShareButton';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  tags: string;
+  isPublic: boolean;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface NoteCardProps {
-  note: NoteType;
+  note: Note;
   onDelete?: (id: string) => void;
-  onTogglePublic?: (id: string, isPublic: boolean) => void;
+  onTogglePublic?: (id: string, current: boolean) => void;
   showActions?: boolean;
 }
 
-function formatDate(dateStr: string | Date) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+export default function NoteCard({ note, onDelete, onTogglePublic, showActions = false }: NoteCardProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const tags = note.tags ? note.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
 
-export default function NoteCard({
-  note,
-  onDelete,
-  onTogglePublic,
-  showActions = false,
-}: NoteCardProps) {
-  const tags = note.tags
-    ? note.tags.split(',').map((t) => t.trim()).filter(Boolean)
-    : [];
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+    });
+  };
 
   return (
-    <div className="card flex flex-col h-full">
-      <div className="flex justify-between items-start gap-2 mb-3">
-        <Link
-          href={`/notes/${note.id}`}
-          className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
-        >
-          {note.title}
-        </Link>
-        <span
-          className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
-            note.isPublic
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-500'
-          }`}
-        >
-          {note.isPublic ? '🌍' : '🔒'}
-        </span>
-      </div>
-
-      <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-1">{note.content}</p>
-
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="tag-badge">
-              {tag}
-            </span>
-          ))}
-          {tags.length > 3 && (
-            <span className="tag-badge bg-gray-100 text-gray-600">+{tags.length - 3}</span>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-        <span>👤 {note.authorName}</span>
-        <span>{formatDate(note.createdAt)}</span>
-      </div>
-
-      {note.isPublic && (
-        <div className="text-xs text-gray-500 mb-3">❤️ {note.likes} likes</div>
-      )}
-
-      {showActions && (
-        <div className="flex gap-2 mt-auto pt-3 border-t border-gray-100">
-          <Link
-            href={`/notes/${note.id}/edit`}
-            className="flex-1 text-center text-sm py-1.5 px-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors"
-          >
-            Edit
+    <>
+      <div className="note-card">
+        <div className="note-card-header">
+          <Link href={`/notes/${note.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+            <h3 className="note-card-title">{note.title}</h3>
           </Link>
-          {onTogglePublic && (
-            <button
-              onClick={() => onTogglePublic(note.id, note.isPublic)}
-              className="flex-1 text-sm py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
-            >
-              {note.isPublic ? 'Privatize' : 'Share'}
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={() => onDelete(note.id)}
-              className="text-sm py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-            >
-              Delete
-            </button>
-          )}
+          <span className={`badge ${note.isPublic ? 'badge-public' : 'badge-private'}`}>
+            {note.isPublic ? '🌐' : '🔒'}
+          </span>
+        </div>
+
+        <p className="note-card-content">{note.content}</p>
+
+        {tags.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {tags.map(tag => (
+              <span key={tag} className="tag">#{tag}</span>
+            ))}
+          </div>
+        )}
+
+        <div className="note-card-meta">
+          <span>✍️ {note.authorName}</span>
+          <span>•</span>
+          <span>{formatDate(note.createdAt)}</span>
+        </div>
+
+        {showActions && (
+          <div className="note-card-actions">
+            <Link href={`/notes/${note.id}`} className="btn btn-secondary btn-sm">View</Link>
+            <Link href={`/notes/${note.id}/edit`} className="btn btn-secondary btn-sm">Edit</Link>
+            {onTogglePublic && (
+              <ShareButton
+                isPublic={note.isPublic}
+                onToggle={() => onTogglePublic(note.id, note.isPublic)}
+                size="sm"
+              />
+            )}
+            {onDelete && (
+              <button className="btn btn-danger btn-sm" onClick={() => setShowConfirm(true)}>
+                Delete
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {showConfirm && (
+        <div className="dialog-overlay" onClick={() => setShowConfirm(false)}>
+          <div className="dialog" onClick={e => e.stopPropagation()}>
+            <h3>Delete Note?</h3>
+            <p>Are you sure you want to delete &ldquo;{note.title}&rdquo;? This cannot be undone.</p>
+            <div className="dialog-actions">
+              <button className="btn btn-secondary" onClick={() => setShowConfirm(false)}>Cancel</button>
+              <button
+                className="btn btn-danger"
+                onClick={() => {
+                  onDelete?.(note.id);
+                  setShowConfirm(false);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
