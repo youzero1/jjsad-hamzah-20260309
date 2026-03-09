@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  jjsad:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/database.sqlite
+      - NEXT_PUBLIC_APP_NAME=jjsad
+      - NEXT_PUBLIC_BASE_URL=http://localhost:3000
+    volumes:
+      - jjsad_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  jjsad_data:
